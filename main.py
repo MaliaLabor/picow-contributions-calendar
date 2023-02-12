@@ -19,7 +19,7 @@ days_to_show = secrets['pixels_width'] * secrets['pixels_height']
 seconds_in_day = 86400
 
 # Setup neopixel matrix
-pixel_pin = 28
+pixel_pin = secrets['leds_pin']
 pixel_width = secrets['pixels_width']
 pixel_height = secrets['pixels_height']
 
