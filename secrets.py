@@ -7,5 +7,6 @@ secrets = {
     'pixels_width': 32,
     'pixels_height': 8,
     'refresh_time_hours': 6, # how often the data will refresh
-    'brightness': 0.65 # brightness limiter to keep current draw low on led matrix
+    'brightness': 0.65, # brightness limiter to keep current draw low on led matrix
+    'leds_pin': 28
     }
