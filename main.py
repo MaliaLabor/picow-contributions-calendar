@@ -17,11 +17,17 @@ brightness = secrets['brightness']
 # Date variables
 days_to_show = secrets['pixels_width'] * secrets['pixels_height']
 seconds_in_day = 86400
+next_refresh_time_seconds = time.time() + refresh_time_in_seconds
 
 # Setup neopixel matrix
 pixel_pin = secrets['leds_pin']
 pixel_width = secrets['pixels_width']
 pixel_height = secrets['pixels_height']
+
+# LED breathing variables
+day_numbers = []
+breathing_modifiers = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+breathing_head_index = 0
 
 pixels = neopixel.NeoPixel(
     machine.Pin(pixel_pin),
@@ -38,6 +44,12 @@ def get_color_values(number):
     red = round(color[0] * ratio)
     green = round(color[1] * ratio)
     blue = round(color[2] * ratio)
+    return (red, green, blue)
+
+def modify_colors(scaled_color, modifier):
+    red = round(scaled_color[0] * modifier)
+    green = round(scaled_color[1] * modifier)
+    blue = round(scaled_color[2] * modifier)
     return (red, green, blue)
 
 def fill_pixels(pixels, color):
@@ -79,27 +91,40 @@ onboard_led.on()
 fill_pixels(pixels, (0,0,0))
 while True:
     current_time = time.time()
-    start_date_secs = current_time - (days_to_show * seconds_in_day)
-    end_date = time.gmtime(current_time)
-    start_date = time.gmtime(start_date_secs)
-    print("Getting data...")
-    nums_list = []
-    end_index = end_date[7] + 1
-    start_index = start_date[7] + 1
+    if (current_time >= next_refresh_time_seconds):
+        print("Getting data...")
+        next_refresh_time_seconds = time.time() + refresh_time_in_seconds
+        start_date_secs = current_time - (days_to_show * seconds_in_day)
+        end_date = time.gmtime(current_time)
+        start_date = time.gmtime(start_date_secs)
+        nums_list = []
+        # index 7 in tuples is days into the year
+        end_index = end_date[7] + 1 
+        start_index = start_date[7] + 1
 
-    # Get previous year's data if range spans 2 years
-    if (start_date[0] < end_date[0]):
-        nums_list = nums_list + get_year_data(start_date[0])
-        end_index += len(nums_list)
-        start_index += 1
-    # Get current year data
-    nums_list = nums_list + get_year_data(end_date[0])
-    day_numbers = nums_list[start_index:end_index]
-    
-    print("Writing pixels...")
-    for x in range(len(day_numbers)):
-        if (x < len(pixels)):
-            scaled_color = get_color_values(day_numbers[x])
-            set_color(pixels, x, scaled_color)
+        # Get previous year's data if range spans 2 years
+        if (start_date[0] < end_date[0]):
+            nums_list = nums_list + get_year_data(start_date[0])
+            end_index += len(nums_list)
+            start_index += 1
+        # Get current year data
+        nums_list = nums_list + get_year_data(end_date[0])
+        day_numbers = nums_list[start_index:end_index]
+        
+        for x in range(len(day_numbers)):
+            if (x < len(pixels)):
+                scaled_color = get_color_values(day_numbers[x])
+                set_color(pixels, x, scaled_color)
+    else:
+        if (breathing_head_index >= 0 & breathing_head_index - len(breathing_modifiers) < days_to_show):
+            for x in range(len(breathing_modifiers)):
+                current_index = breathing_head_index - x 
+                if (current_index >= 0 & current_index < days_to_show):
+                    scaled_color = get_color_values(day_numbers[current_index])
+                    modified_color = modify_colors(scaled_color, breathing_modifiers[x])
+                    set_color(pixels, current_index, modified_color)
+            breathing_head_index += 1
+        elif (breathing_head_index > days_to_show):
+            breathing_head_index = 0
     pixels.write()
-    time.sleep(refresh_time_in_seconds)
+    time.sleep(1)
