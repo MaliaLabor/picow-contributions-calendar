@@ -2,6 +2,7 @@ from secrets import secrets
 from machine import Pin
 import network
 import time
+import utime
 import urequests as requests
 import neopixel
 
@@ -17,7 +18,7 @@ brightness = secrets['brightness']
 # Date variables
 days_to_show = secrets['pixels_width'] * secrets['pixels_height']
 seconds_in_day = 86400
-next_refresh_time_seconds = time.time() + refresh_time_in_seconds
+next_refresh_time_seconds = time.time()
 
 # Setup neopixel matrix
 pixel_pin = secrets['leds_pin']
@@ -26,7 +27,7 @@ pixel_height = secrets['pixels_height']
 
 # LED breathing variables
 day_numbers = []
-breathing_modifiers = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+breathing_modifiers = [0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
 breathing_head_index = 0
 
 pixels = neopixel.NeoPixel(
@@ -101,13 +102,14 @@ while True:
         # index 7 in tuples is days into the year
         end_index = end_date[7] + 1 
         start_index = start_date[7] + 1
-
+        
         # Get previous year's data if range spans 2 years
         if (start_date[0] < end_date[0]):
             nums_list = nums_list + get_year_data(start_date[0])
             end_index += len(nums_list)
             start_index += 1
         # Get current year data
+        time.sleep(2)
         nums_list = nums_list + get_year_data(end_date[0])
         day_numbers = nums_list[start_index:end_index]
         
@@ -116,10 +118,10 @@ while True:
                 scaled_color = get_color_values(day_numbers[x])
                 set_color(pixels, x, scaled_color)
     else:
-        if (breathing_head_index >= 0 & breathing_head_index - len(breathing_modifiers) < days_to_show):
+        if (breathing_head_index >= 0 and breathing_head_index - len(breathing_modifiers) < days_to_show):
             for x in range(len(breathing_modifiers)):
-                current_index = breathing_head_index - x 
-                if (current_index >= 0 & current_index < days_to_show):
+                current_index = breathing_head_index - x
+                if (current_index >= 0 and current_index < len(day_numbers)):
                     scaled_color = get_color_values(day_numbers[current_index])
                     modified_color = modify_colors(scaled_color, breathing_modifiers[x])
                     set_color(pixels, current_index, modified_color)
@@ -127,4 +129,5 @@ while True:
         elif (breathing_head_index > days_to_show):
             breathing_head_index = 0
     pixels.write()
-    time.sleep(1)
+    utime.sleep_ms(150)
+    
